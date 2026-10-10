@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Admin Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            padding: 30px;
+            background: linear-gradient(135deg, #f97316, #ea580c);
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 18px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            color: #ea580c;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #64748b;
+        }
+
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 13px 30px;
+            border: none;
+            border-radius: 8px;
+            background: #f97316;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #c2410c;
+        }
+
+        #feedbackArea {
+            margin-top: 25px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th {
+            background: #ea580c;
+            color: white;
+            padding: 12px;
+        }
+
+        td {
+            border: 1px solid #e2e8f0;
+            padding: 11px;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background: #fff7ed;
+        }
+
+        tr:hover {
+            background: #fef3c7;
+        }
+
+        .rating {
+            font-weight: bold;
+            color: #eab308;
+        }
+
+        .success {
+            color: #16a34a;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #dc2626;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>📊 Admin Dashboard</h1>
+        <p>Student Feedback Management System</p>
+    </div>
+
+    <button onclick="loadFeedback()">
+        Load Feedback
+    </button>
+
+    <div id="feedbackArea"></div>
+
+</div>
+
+<script>
+
+function loadFeedback() {
+
+    const area = document.getElementById("feedbackArea");
+
+    area.innerHTML = "<p>Loading feedback...</p>";
+
+    fetch("http://localhost:8080/api/feedback")
+
+        .then(response => {
+
+            if (!response.ok) {
+                throw new Error("Failed to load feedback");
+            }
+
+            return response.json();
+
+        })
+
+        .then(data => {
+
+            let html = `
+                <h2>Submitted Feedback</h2>
+
+                <table>
+
+                    <tr>
+                        <th>ID</th>
+                        <th>Student ID</th>
+                        <th>Faculty</th>
+                        <th>Subject</th>
+                        <th>Rating</th>
+                        <th>Comments</th>
+                    </tr>
+            `;
+
+            data.forEach(feedback => {
+
+                html += `
+                    <tr>
+                        <td>${feedback.id}</td>
+                        <td>${feedback.studentId}</td>
+                        <td>${feedback.facultyName}</td>
+                        <td>${feedback.subjectName}</td>
+                        <td class="rating">
+                            ⭐ ${feedback.rating}/5
+                        </td>
+                        <td>${feedback.comments}</td>
+                    </tr>
+                `;
+
+            });
+
+            html += `
+                </table>
+
+                <p class="success">
+                    ✓ Feedback loaded successfully
+                </p>
+            `;
+
+            area.innerHTML = html;
+
+        })
+
+        .catch(error => {
+
+            console.error(error);
+
+            area.innerHTML = `
+                <p class="error">
+                    ❌ Error loading feedback
+                </p>
+            `;
+
+        });
+
+}
+
+</script>
+
+</body>
+
+</html>
