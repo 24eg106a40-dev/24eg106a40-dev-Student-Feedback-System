@@ -1,11 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Admin Dashboard</title>
+    <title>Admin Dashboard | Student Feedback System</title>
 
     <style>
         * {
@@ -16,13 +15,13 @@
         body {
             margin: 0;
             min-height: 100vh;
-            padding: 30px;
+            padding: 30px 16px;
             background: linear-gradient(135deg, #f97316, #ea580c);
         }
 
         .container {
             max-width: 1100px;
-            margin: auto;
+            margin: 40px auto;
             background: white;
             padding: 30px;
             border-radius: 18px;
@@ -60,6 +59,11 @@
             background: #c2410c;
         }
 
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
         #feedbackArea {
             margin-top: 25px;
             overflow-x: auto;
@@ -69,6 +73,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
+            min-width: 650px;
         }
 
         th {
@@ -81,6 +86,7 @@
             border: 1px solid #e2e8f0;
             padding: 11px;
             text-align: center;
+            overflow-wrap: anywhere;
         }
 
         tr:nth-child(even) {
@@ -93,7 +99,7 @@
 
         .rating {
             font-weight: bold;
-            color: #eab308;
+            color: #ca8a04;
         }
 
         .success {
@@ -107,108 +113,142 @@
             text-align: center;
             font-weight: bold;
         }
+
+        .info {
+            text-align: center;
+            color: #475569;
+        }
+
+        .count {
+            color: #9a3412;
+            font-weight: bold;
+        }
     </style>
 </head>
 
 <body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Admin Dashboard</h1>
+            <p>Student Feedback Management System</p>
+        </div>
 
-<div class="container">
+        <button id="loadButton" onclick="loadFeedback()">
+            Load Feedback
+        </button>
 
-    <div class="header">
-        <h1>📊 Admin Dashboard</h1>
-        <p>Student Feedback Management System</p>
+        <div id="feedbackArea" aria-live="polite">
+            <p class="info">Click "Load Feedback" to view submitted feedback.</p>
+        </div>
     </div>
 
-    <button onclick="loadFeedback()">
-        Load Feedback
-    </button>
+    <script>
+        const API_URL =
+            "https://student-feedback-backend-jm7x.onrender.com/api/feedback";
 
-    <div id="feedbackArea"></div>
+        async function loadFeedback() {
+            const area = document.getElementById("feedbackArea");
+            const button = document.getElementById("loadButton");
 
-</div>
+            area.innerHTML = '<p class="info">Loading feedback...</p>';
+            button.disabled = true;
 
-<script>
+            try {
+                const response = await fetch(API_URL);
 
-function loadFeedback() {
+                if (!response.ok) {
+                    throw new Error("Server error: " + response.status);
+                }
 
-    const area = document.getElementById("feedbackArea");
+                const data = await response.json();
 
-    area.innerHTML = "<p>Loading feedback...</p>";
+                if (!Array.isArray(data)) {
+                    throw new Error("Unexpected feedback data format.");
+                }
 
-    fetch("http://localhost:8080/api/feedback")
+                if (data.length === 0) {
+                    area.innerHTML = `
+                        <h2>Submitted Feedback</h2>
+                        <p class="info">No feedback records found.</p>
+                        <p class="success">✓ Connection successful</p>
+                    `;
+                    return;
+                }
 
-        .then(response => {
+                const table = document.createElement("table");
+                const thead = document.createElement("thead");
+                const headerRow = document.createElement("tr");
 
-            if (!response.ok) {
-                throw new Error("Failed to load feedback");
-            }
+                ["ID", "Student ID", "Faculty", "Subject", "Rating", "Comments"]
+                    .forEach(title => {
+                        const th = document.createElement("th");
+                        th.textContent = title;
+                        headerRow.appendChild(th);
+                    });
 
-            return response.json();
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
 
-        })
+                const tbody = document.createElement("tbody");
 
-        .then(data => {
+                data.forEach(feedback => {
+                    const row = document.createElement("tr");
 
-            let html = `
-                <h2>Submitted Feedback</h2>
+                    [
+                        feedback.id,
+                        feedback.studentId,
+                        feedback.facultyName,
+                        feedback.subjectName
+                    ].forEach(value => {
+                        const td = document.createElement("td");
+                        td.textContent = value ?? "";
+                        row.appendChild(td);
+                    });
 
-                <table>
+                    const ratingCell = document.createElement("td");
+                    ratingCell.className = "rating";
+                    ratingCell.textContent = `⭐ ${feedback.rating ?? ""}/5`;
+                    row.appendChild(ratingCell);
 
-                    <tr>
-                        <th>ID</th>
-                        <th>Student ID</th>
-                        <th>Faculty</th>
-                        <th>Subject</th>
-                        <th>Rating</th>
-                        <th>Comments</th>
-                    </tr>
-            `;
+                    const commentsCell = document.createElement("td");
+                    commentsCell.textContent = feedback.comments ?? "";
+                    row.appendChild(commentsCell);
 
-            data.forEach(feedback => {
+                    tbody.appendChild(row);
+                });
 
-                html += `
-                    <tr>
-                        <td>${feedback.id}</td>
-                        <td>${feedback.studentId}</td>
-                        <td>${feedback.facultyName}</td>
-                        <td>${feedback.subjectName}</td>
-                        <td class="rating">
-                            ⭐ ${feedback.rating}/5
-                        </td>
-                        <td>${feedback.comments}</td>
-                    </tr>
+                table.appendChild(tbody);
+
+                area.replaceChildren();
+
+                const heading = document.createElement("h2");
+                heading.textContent = "Submitted Feedback";
+
+                const count = document.createElement("p");
+                count.className = "count";
+                count.textContent = `Total feedback records: ${data.length}`;
+
+                const message = document.createElement("p");
+                message.className = "success";
+                message.textContent = "✓ Feedback loaded successfully";
+
+                area.append(heading, count, table, message);
+
+            } catch (error) {
+                console.error("Error loading feedback:", error);
+
+                area.innerHTML = `
+                    <p class="error">
+                        ❌ Could not load feedback. Please try again.
+                    </p>
+                    <p class="info">
+                        Check your internet connection and backend availability.
+                    </p>
                 `;
-
-            });
-
-            html += `
-                </table>
-
-                <p class="success">
-                    ✓ Feedback loaded successfully
-                </p>
-            `;
-
-            area.innerHTML = html;
-
-        })
-
-        .catch(error => {
-
-            console.error(error);
-
-            area.innerHTML = `
-                <p class="error">
-                    ❌ Error loading feedback
-                </p>
-            `;
-
-        });
-
-}
-
-</script>
-
+            } finally {
+                button.disabled = false;
+            }
+        }
+    </script>
 </body>
-
 </html>
