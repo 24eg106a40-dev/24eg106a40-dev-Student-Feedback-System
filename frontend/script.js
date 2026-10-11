@@ -1,46 +1,58 @@
-document.getElementById("feedbackForm").addEventListener("submit", function(event) {
 
+document.getElementById("feedbackForm").addEventListener("submit", async function (event) {
     event.preventDefault();
 
+    const message = document.getElementById("message");
+    const submitButton = document.querySelector(
+        '#feedbackForm button[type="submit"]'
+    );
+
     const feedback = {
-        studentId: parseInt(document.getElementById("studentId").value),
-        facultyName: document.getElementById("facultyName").value,
-        subjectName: document.getElementById("subjectName").value,
-        rating: parseInt(document.getElementById("rating").value),
-        comments: document.getElementById("comments").value
+        studentId: parseInt(document.getElementById("studentId").value, 10),
+        facultyName: document.getElementById("facultyName").value.trim(),
+        subjectName: document.getElementById("subjectName").value.trim(),
+        rating: parseInt(document.getElementById("rating").value, 10),
+        comments: document.getElementById("comments").value.trim()
     };
 
-    fetch("http://localhost:8080/api/feedback", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(feedback)
-    })
-    .then(response => {
+    message.textContent = "Submitting feedback...";
+    message.style.color = "blue";
+
+    if (submitButton) {
+        submitButton.disabled = true;
+    }
+
+    try {
+        const response = await fetch(
+            "https://student-feedback-backend-jm7x.onrender.com/api/feedback",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(feedback)
+            }
+        );
+
         if (!response.ok) {
-            throw new Error("Failed to submit feedback");
+            throw new Error("Server returned status " + response.status);
         }
-        return response.json();
-    })
-    .then(data => {
 
-        document.getElementById("message").textContent =
-            "Feedback submitted successfully!";
-
-        document.getElementById("message").style.color = "green";
+        message.textContent = "Feedback submitted successfully!";
+        message.style.color = "green";
 
         document.getElementById("feedbackForm").reset();
-
         document.getElementById("studentId").value = 1;
-    })
-    .catch(error => {
 
-        document.getElementById("message").textContent =
-            "Error submitting feedback.";
+    } catch (error) {
+        message.textContent =
+            "Could not submit feedback. Please try again.";
+        message.style.color = "red";
 
-        document.getElementById("message").style.color = "red";
-
-        console.error(error);
-    });
+        console.error("Feedback submission error:", error);
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+        }
+    }
 });
